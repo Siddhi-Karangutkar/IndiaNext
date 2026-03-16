@@ -19,7 +19,7 @@ def get_severity_from_score(score: int) -> str:
     return "CRIT"
 
 def analyze_phishing(text: str) -> AnalyzeTextResponse:
-    API_URL = "https://router.huggingface.co/hf-inference/models/ealvaradob/bert-finetuned-phishing"
+    API_URL = "https://router.huggingface.co/hf-inference/models/ealvaradob/bert-finetuned-phishing" #not sure
     headers = {"Authorization": f"Bearer {HF_API_TOKEN}"} if HF_API_TOKEN else {}
     
     fallback_used = False
