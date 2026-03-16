@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from models.schemas import AnalyzeTextRequest, AnalyzeTextResponse, AnalyzeBehaviourRequest, AnalyzeBehaviourResponse
 from services.phishing_service import analyze_phishing_advanced
 from services.hf_service import analyze_injection
+from services.url_service import analyze_url
 from services.behaviour_service import analyze_behaviour
 from services.auto_detect import detect_input_type
 from pydantic import BaseModel
@@ -20,6 +21,10 @@ def handle_phishing(request: AnalyzeTextRequest):
 def handle_injection(request: AnalyzeTextRequest):
     return analyze_injection(request.text)
 
+@router.post("/url", response_model=AnalyzeTextResponse)
+def handle_url(request: AnalyzeTextRequest):
+    return analyze_url(request.text)
+
 @router.post("/behaviour", response_model=AnalyzeBehaviourResponse)
 def handle_behaviour(request: AnalyzeBehaviourRequest):
     return analyze_behaviour(request.events)
@@ -37,6 +42,11 @@ def handle_auto(request: AutoAnalyzeRequest):
         result = analyze_injection(request.text)
         result_dict = result.dict() if hasattr(result, 'dict') else dict(result)
         result_dict['detected_as'] = 'injection'
+        return result_dict
+    elif input_type == 'url':
+        result = analyze_url(request.text)
+        result_dict = result.dict() if hasattr(result, 'dict') else dict(result)
+        result_dict['detected_as'] = 'url'
         return result_dict
     else:  # behaviour
         import json
