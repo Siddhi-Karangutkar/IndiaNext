@@ -16,3 +16,8 @@ export const analyzeBehaviour = async (events) => {
   const res = await axios.post(`${API_URL}/analyze/behaviour`, { events });
   return res.data;
 };
+
+export const analyzeUrl = async (url) => {
+  const res = await axios.post(`${API_URL}/analyze/url`, { url });
+  return res.data;
+};

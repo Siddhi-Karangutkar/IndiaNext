@@ -4,6 +4,7 @@ const PLACEHOLDERS = {
   phishing: 'Paste suspicious email or message here...',
   injection: 'Paste the prompt or user input to analyze...',
   behaviour: 'Paste activity log or JSON event array here...',
+  url: 'Paste a URL to analyze e.g. http://secure-paypa1.com/verify...',
 };
 
 const InputPanel = ({ activeTab, inputAreaValue, setInputAreaValue, onAnalyze, loading, onFillSample }) => (

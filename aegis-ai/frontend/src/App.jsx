@@ -6,7 +6,7 @@ import VerdictCards from './components/VerdictCards';
 import ChartsPanel from './components/ChartsPanel';
 import ExplainabilityPanel from './components/ExplainabilityPanel';
 import RecommendationPanel from './components/RecommendationPanel';
-import { analyzePhishing, analyzeInjection, analyzeBehaviour } from './api';
+import { analyzePhishing, analyzeInjection, analyzeBehaviour, analyzeUrl } from './api';
 
 const SAMPLE_BEHAVIOUR_JSON = JSON.stringify([
   { timestamp: "21:45:10", action: "User logged in successfully", ip: "192.168.1.10" },
@@ -43,6 +43,9 @@ function App() {
         try { events = JSON.parse(inputVal); if (!Array.isArray(events)) throw new Error(); }
         catch { throw new Error('Invalid JSON array provided for behaviour analysis.'); }
         res = await analyzeBehaviour(events);
+      }
+      else if (activeTab === 'url') {
+        res = await analyzeUrl(inputVal);
       }
       setResult(res);
     } catch (err) {
