@@ -16,6 +16,7 @@ class AnalyzeTextResponse(BaseModel):
     confidence: float
     flagged_phrases: List[FlaggedPhrase]
     recommended_action: str
+    engine_source: Optional[str] = "Local ML Engine"
 
 class BehaviourEvent(BaseModel):
     timestamp: str
@@ -37,3 +38,4 @@ class AnalyzeBehaviourResponse(BaseModel):
     confidence: float
     flagged_events: List[FlaggedEvent]
     recommended_action: str
+    engine_source: Optional[str] = "Rule-Based Behaviour Engine"

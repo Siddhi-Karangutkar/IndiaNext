@@ -3,6 +3,7 @@ import requests
 import json
 from models.schemas import AnalyzeTextResponse, FlaggedPhrase
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
@@ -18,7 +19,7 @@ def get_severity_from_score(score: int) -> str:
     return "CRIT"
 
 def analyze_phishing(text: str) -> AnalyzeTextResponse:
-    API_URL = "https://api-inference.huggingface.co/models/ealvaradob/bert-finetuned-phishing"
+    API_URL = "https://router.huggingface.co/hf-inference/models/ealvaradob/bert-finetuned-phishing"
     headers = {"Authorization": f"Bearer {HF_API_TOKEN}"} if HF_API_TOKEN else {}
     
     fallback_used = False
@@ -83,7 +84,8 @@ def analyze_phishing(text: str) -> AnalyzeTextResponse:
 
 
 def analyze_injection(text: str) -> AnalyzeTextResponse:
-    API_URL = "https://api-inference.huggingface.co/models/deepset/deberta-v3-base-injection"
+    # Reverted to the active deepset model
+    API_URL = "https://router.huggingface.co/hf-inference/models/protectai/deberta-v3-base-prompt-injection-v2"
     headers = {"Authorization": f"Bearer {HF_API_TOKEN}"} if HF_API_TOKEN else {}
     
     fallback_used = False
@@ -91,24 +93,39 @@ def analyze_injection(text: str) -> AnalyzeTextResponse:
     confidence = 0.0
     
     if HF_API_TOKEN:
-        try:
-            response = requests.post(API_URL, headers=headers, json={"inputs": text}, timeout=5)
-            if response.status_code == 200:
-                result = response.json()
-                if isinstance(result, list) and isinstance(result[0], list):
-                    res = result[0]
-                    inj_score = next((item['score'] for item in res if item['label'].lower() in ['injection', 'label_1', '1']), 0.0)
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # 15-second timeout and retry loop to handle Hugging Face cold starts
+                response = requests.post(API_URL, headers=headers, json={"inputs": text}, timeout=15)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    if isinstance(result, list) and isinstance(result[0], list):
+                        res = result[0]
+                    elif isinstance(result, list) and isinstance(result[0], dict):
+                        res = result
+                    else:
+                        fallback_used = True
+                        break
+                    
+                    # Extract the injection score
+                    inj_score = next((item['score'] for item in res if item['label'].upper() in ['INJECTION', 'LABEL_1', '1', 'LABEL_1']), 0.0)
                     confidence = max(item['score'] for item in res)
                     score = int(inj_score * 100)
-                elif isinstance(result, list) and isinstance(result[0], dict):
-                    res = result
-                    inj_score = next((item['score'] for item in res if item['label'].lower() in ['injection', 'label_1', '1']), 0.0)
-                    confidence = max(item['score'] for item in res)
-                    score = int(inj_score * 100)
-            else:
+                    fallback_used = False
+                    break  # Success, exit the retry loop
+                    
+                elif response.status_code == 503:
+                    # Catch 503 errors (Model is loading on Hugging Face servers)
+                    fallback_used = True
+                    time.sleep(5)  # Wait 5 seconds and retry
+                else:
+                    fallback_used = True
+                    break
+            except Exception:
                 fallback_used = True
-        except Exception:
-            fallback_used = True
+                break
     else:
         fallback_used = True
         
@@ -139,5 +156,6 @@ def analyze_injection(text: str) -> AnalyzeTextResponse:
         verdict=verdict,
         confidence=confidence,
         flagged_phrases=flagged,
-        recommended_action=action
+        recommended_action=action,
+        engine_source="HuggingFace Injection Model" if not fallback_used else "Local Rule Engine"
     )

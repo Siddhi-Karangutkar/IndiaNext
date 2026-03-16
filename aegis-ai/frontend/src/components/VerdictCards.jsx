@@ -24,14 +24,24 @@ const Card = ({ label, value, color }) => (
 
 const VerdictCards = ({ result }) => {
   if (!result) return null;
-  const { threat_score, severity, verdict, confidence } = result;
+  const { threat_score, severity, verdict, confidence, engine_source } = result;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '8px', marginBottom: '24px' }}>
-      <Card label="THREAT SCORE" value={threat_score} color={getSeverityColor(severity)} />
-      <Card label="SEVERITY" value={severity} color={getSeverityColor(severity)} />
-      <Card label="VERDICT" value={verdict} color={getVerdictColor(verdict)} />
-      <Card label="CONFIDENCE" value={`${Math.round(confidence * 100)}%`} color="var(--cyan)" />
-    </div>
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '8px', marginBottom: '12px' }}>
+        <Card label="THREAT SCORE" value={threat_score} color={getSeverityColor(severity)} />
+        <Card label="SEVERITY" value={severity} color={getSeverityColor(severity)} />
+        <Card label="VERDICT" value={verdict} color={getVerdictColor(verdict)} />
+        <Card label="CONFIDENCE" value={`${Math.round(confidence * 100)}%`} color="var(--cyan)" />
+      </div>
+      {engine_source && (
+        <div style={{
+          fontSize: '9px', color: 'var(--muted)', fontFamily: 'JetBrains Mono, monospace',
+          textAlign: 'right', marginBottom: '24px', letterSpacing: '0.8px'
+        }}>
+          ENGINE SOURCE: <span style={{ color: 'var(--text)' }}>{engine_source.toUpperCase()}</span>
+        </div>
+      )}
+    </>
   );
 };
 
