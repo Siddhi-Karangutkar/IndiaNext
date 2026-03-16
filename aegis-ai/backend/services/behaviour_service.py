@@ -115,5 +115,6 @@ def analyze_behaviour(events: List[BehaviourEvent]) -> AnalyzeBehaviourResponse:
         verdict=verdict,
         confidence=0.95,  # Rule engine has high confidence
         flagged_events=flagged_events,
-        recommended_action=action
+        recommended_action=action,
+        engine_source="Rule-Based Behaviour Engine"
     )
