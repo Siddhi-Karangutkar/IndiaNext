@@ -1,9 +1,11 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 requests
 python-dotenv
-fastapi-cors
 scikit-learn
-nltk
 numpy
+scipy
+nltk
+websockets
+httpx

@@ -1,16 +1,21 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from models.schemas import AnalyzeTextRequest, AnalyzeTextResponse, AnalyzeBehaviourRequest, AnalyzeBehaviourResponse
-from services.phishing_service import analyze_phishing_advanced
+from models.schemas import (
+    AnalyzeTextRequest, AnalyzeTextResponse,
+    AnalyzeBehaviourRequest, AnalyzeBehaviourResponse,
+    AnalyzeURLRequest,
+)
 from services.hf_service import analyze_injection
 from services.url_service import analyze_url
 from services.behaviour_service import analyze_behaviour
-from services.auto_detect import detect_input_type
 
 router = APIRouter(prefix="/analyze", tags=["Analysis"])
 
-class AutoAnalyzeRequest(BaseModel):
-    text: str
+# Support both phishing service versions
+try:
+    from services.phishing_service import analyze_phishing_advanced as analyze_phishing
+except ImportError:
+    from services.hf_service import analyze_phishing
+
 
 @router.post("/phishing")
 def handle_phishing(request: AnalyzeTextRequest):
@@ -25,47 +30,16 @@ def handle_injection(request: AnalyzeTextRequest):
         raise HTTPException(status_code=400, detail="Input text cannot be empty.")
     return analyze_injection(request.text)
 
+
 @router.post("/url", response_model=AnalyzeTextResponse)
-def handle_url(request: AnalyzeTextRequest):
-    return analyze_url(request.text)
+def handle_url(request: AnalyzeURLRequest):
+    if not request.url.strip():
+        raise HTTPException(status_code=400, detail="URL cannot be empty.")
+    return analyze_url(request.url)
+
 
 @router.post("/behaviour", response_model=AnalyzeBehaviourResponse)
 def handle_behaviour(request: AnalyzeBehaviourRequest):
     if not request.events:
         raise HTTPException(status_code=400, detail="Events list cannot be empty.")
     return analyze_behaviour(request.events)
-
-@router.post("/auto")
-def handle_auto(request: AutoAnalyzeRequest):
-    """Auto-detect input type and route to appropriate analyzer."""
-    input_type = detect_input_type(request.text)
-    
-    if input_type == 'phishing':
-        result = analyze_phishing_advanced(request.text)
-        result['detected_as'] = 'phishing'
-        return result
-    elif input_type == 'injection':
-        result = analyze_injection(request.text)
-        result_dict = result.dict() if hasattr(result, 'dict') else dict(result)
-        result_dict['detected_as'] = 'injection'
-        return result_dict
-    elif input_type == 'url':
-        result = analyze_url(request.text)
-        result_dict = result.dict() if hasattr(result, 'dict') else dict(result)
-        result_dict['detected_as'] = 'url'
-        return result_dict
-    else:  # behaviour
-        import json
-        try:
-            events_data = json.loads(request.text)
-            from models.schemas import BehaviourEvent
-            events = [BehaviourEvent(**e) for e in events_data]
-            result = analyze_behaviour(events)
-            result_dict = result.dict() if hasattr(result, 'dict') else dict(result)
-            result_dict['detected_as'] = 'behaviour'
-            return result_dict
-        except Exception:
-            result = analyze_injection(request.text)
-            result_dict = result.dict() if hasattr(result, 'dict') else dict(result)
-            result_dict['detected_as'] = 'injection'
-            return result_dict
